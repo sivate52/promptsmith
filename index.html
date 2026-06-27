@@ -209,6 +209,47 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
   opacity: 0; transition: all .25s; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── Usage counter ── */
+.usage-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 18px; margin-bottom: 16px;
+  font-family: var(--mono); font-size: 12.5px;
+}
+.usage-left { color: var(--text-dim); display: flex; align-items: center; gap: 10px; }
+.usage-pips { display: flex; gap: 4px; }
+.pip {
+  width: 10px; height: 10px; border-radius: 3px;
+  background: var(--acc); box-shadow: 0 0 6px var(--acc-glow);
+  transition: opacity .2s;
+}
+.pip.used { background: var(--line-bright); box-shadow: none; }
+.usage-label { color: var(--text-faint); }
+.usage-label .rem { color: var(--acc); font-weight: 600; }
+.upgrade-nudge {
+  color: var(--amber); font-size: 12px; cursor: pointer;
+  border: 1px solid rgba(246,200,124,0.3); padding: 4px 10px;
+  border-radius: 6px; transition: all .15s;
+}
+.upgrade-nudge:hover { background: rgba(246,200,124,0.08); }
+
+/* Limit reached banner */
+.limit-banner {
+  display: none; background: rgba(246,124,140,0.08);
+  border: 1px solid rgba(246,124,140,0.3); border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 16px;
+  font-size: 14px; color: var(--text-dim); line-height: 1.6;
+}
+.limit-banner strong { color: var(--red); }
+.limit-banner.show { display: block; }
+.limit-banner .up-btn {
+  display: inline-block; margin-top: 10px;
+  background: var(--amber); color: #1a0f00; font-weight: 600;
+  padding: 8px 16px; border-radius: 7px; cursor: pointer;
+  font-size: 13px; border: none; font-family: var(--sans);
+}
+
 </style>
 </head>
 <body>
@@ -233,6 +274,21 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
 
   <!-- APP -->
   <section class="app">
+  <!-- Usage counter -->
+  <div class="usage-bar" id="usagebar">
+    <div class="usage-left">
+      <div class="usage-pips" id="pips"></div>
+      <span class="usage-label">
+        <span class="rem" id="remcount">10</span> / 10 free today
+      </span>
+    </div>
+    <span class="upgrade-nudge" onclick="showUpgrade()">Upgrade to Pro →</span>
+  </div>
+  <div class="limit-banner" id="limitbanner">
+    <strong>Daily limit reached.</strong> You've used all 10 free optimizations for today.
+    Come back tomorrow, or upgrade to Pro for unlimited access.<br/>
+    <button class="up-btn" onclick="showUpgrade()">Upgrade to Pro — ₹499/month</button>
+  </div>
     <div class="modebar" id="modebar">
       <button class="mode active" data-mode="general"><span class="ic">⌘</span> General</button>
       <button class="mode" data-mode="debug"><span class="ic">🐛</span> Debug</button>
@@ -379,16 +435,62 @@ input.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') optimize();
 });
 
+// ── Usage UI ────────────────────────────────────────────────
+let usageRemaining = 10;
+
+function renderUsage(remaining, limit) {
+  usageRemaining = remaining;
+  document.getElementById('remcount').textContent = remaining;
+  const pips = document.getElementById('pips');
+  pips.innerHTML = '';
+  for (let i = 0; i < limit; i++) {
+    const p = document.createElement('span');
+    p.className = 'pip' + (i >= remaining ? ' used' : '');
+    pips.appendChild(p);
+  }
+  // Show limit banner and disable button when at 0
+  const banner = document.getElementById('limitbanner');
+  if (remaining <= 0) {
+    banner.classList.add('show');
+    go.disabled = true;
+    golabel.textContent = 'Daily limit reached';
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+async function loadUsage() {
+  if (!API_URL) return; // demo mode, no cap
+  try {
+    const r = await fetch(API_URL + '/api/usage');
+    if (r.ok) {
+      const d = await r.json();
+      renderUsage(d.remaining, d.limit);
+    }
+  } catch (_) {}
+}
+
+function showUpgrade() {
+  showToast('Pro payments coming soon — we will email when live!');
+}
+
+// Load usage on page open
+loadUsage();
+
 async function optimize() {
   const text = input.value.trim();
   err.textContent = '';
   if (text.length < 3) { err.textContent = 'Enter what you want the AI to do.'; return; }
+  if (API_URL && usageRemaining <= 0) {
+    document.getElementById('limitbanner').classList.add('show');
+    return;
+  }
 
   go.disabled = true;
   golabel.innerHTML = '<span class="spin"></span> Optimizing';
 
   try {
-    let optimized;
+    let optimized, remaining;
     if (API_URL) {
       const r = await fetch(API_URL + '/api/optimize', {
         method: 'POST',
@@ -396,10 +498,16 @@ async function optimize() {
         body: JSON.stringify({ input: text, mode: currentMode }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error || 'Request failed');
+      if (!r.ok) {
+        if (data.limitReached) {
+          renderUsage(0, data.limit || 10);
+          throw new Error(data.error);
+        }
+        throw new Error(data.error || 'Request failed');
+      }
       optimized = data.optimized;
+      if (typeof data.remaining === 'number') renderUsage(data.remaining, data.limit || 10);
     } else {
-      // Demo fallback (works with no backend) so the page is never dead
       await new Promise(res => setTimeout(res, 600));
       optimized = demoOptimize(text, currentMode);
     }
@@ -408,8 +516,10 @@ async function optimize() {
   } catch (e) {
     err.textContent = e.message || 'Something went wrong. Try again.';
   } finally {
-    go.disabled = false;
-    golabel.textContent = 'Optimize prompt';
+    if (usageRemaining > 0) {
+      go.disabled = false;
+      golabel.textContent = 'Optimize prompt';
+    }
   }
 }
 
@@ -424,10 +534,8 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
-// ── Upgrade (placeholder until payments wired) ──────────────
-document.getElementById('upgrade').addEventListener('click', () => {
-  showToast('Payments coming soon — Pro will be ₹499/mo');
-});
+// ── Upgrade button in pricing ────────────────────────────────
+document.getElementById('upgrade').addEventListener('click', showUpgrade);
 
 // ── Demo optimizer (only used when no backend is set) ───────
 function demoOptimize(text, mode) {
