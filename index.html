@@ -175,8 +175,8 @@ textarea::placeholder { color: var(--text-faint); }
 
 /* ── PRICING ── */
 .pricing { padding: 64px 0; }
-.price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 720px; }
-@media (max-width: 640px) { .price-grid { grid-template-columns: 1fr; } }
+.price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 880px; }
+@media (max-width: 760px) { .price-grid { grid-template-columns: 1fr; } }
 .price {
   background: var(--surface); border: 1px solid var(--line);
   border-radius: 14px; padding: 28px;
@@ -396,17 +396,29 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
         </ul>
         <button class="btn btn-ghost" onclick="document.getElementById('input').focus()">Start free</button>
       </div>
+      <div class="price">
+        <span class="soon-badge">COMING SOON</span>
+        <div class="plan">STARTER</div>
+        <div class="amt">₹199<span> / month</span></div>
+        <ul>
+          <li><span class="ck">+</span> 50 optimizations per day</li>
+          <li><span class="ck">+</span> All 6 modes + all templates</li>
+          <li><span class="ck">+</span> Save up to 20 prompts</li>
+          <li><span class="ck">+</span> Copy to any AI tool</li>
+        </ul>
+        <button class="btn btn-ghost" onclick="showUpgrade('starter')" style="justify-content:center;">Get notified</button>
+      </div>
       <div class="price pro">
         <span class="soon-badge">COMING SOON</span>
         <div class="plan">PRO</div>
         <div class="amt">₹499<span> / month</span></div>
         <ul>
           <li><span class="ck">+</span> Unlimited optimizations</li>
-          <li><span class="ck">+</span> Save & organize your prompt library</li>
+          <li><span class="ck">+</span> Save & organize unlimited prompts</li>
           <li><span class="ck">+</span> Full template collection</li>
           <li><span class="ck">+</span> Priority optimization speed</li>
         </ul>
-        <button class="btn btn-primary" id="upgrade" style="justify-content:center;">Upgrade to Pro</button>
+        <button class="btn btn-primary" id="upgrade" style="justify-content:center;">Get notified</button>
       </div>
     </div>
   </section>
@@ -456,7 +468,7 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
 // ── CONFIG ──────────────────────────────────────────────────
 // After deploying the backend, set this to your API URL.
 // For local testing it falls back to a built-in demo optimizer.
-const API_URL = "https://promptsmith-api-production.up.railway.app"; // e.g. "https://promptsmith-api.up.railway.app"
+const API_URL = "https://promptsmith-api.up.railway.app"; // e.g. "https://promptsmith-api.up.railway.app"
 
 let currentMode = 'general';
 
@@ -549,7 +561,18 @@ async function loadUsage() {
 
 let selectedTier = 'starter';
 
-function showUpgrade() {
+function selectTier(tier) {
+  selectedTier = tier;
+  document.querySelectorAll('.tier-opt').forEach(t => {
+    t.classList.toggle('sel', t.dataset.tier === tier);
+  });
+}
+
+function showUpgrade(defaultTier) {
+  // Reset to a clean state every time the modal opens
+  selectTier(defaultTier || 'starter');
+  document.getElementById('emailInput').value = '';
+  document.getElementById('emailInput').style.borderColor = '';
   document.getElementById('modal').classList.add('show');
   document.getElementById('modalForm').style.display = 'block';
   document.getElementById('modalOk').style.display = 'none';
@@ -560,13 +583,9 @@ function closeModal() {
   document.getElementById('modal').classList.remove('show');
 }
 
-// Tier selection
-document.getElementById('tierPick').addEventListener('click', e => {
-  const opt = e.target.closest('.tier-opt');
-  if (!opt) return;
-  document.querySelectorAll('.tier-opt').forEach(t => t.classList.remove('sel'));
-  opt.classList.add('sel');
-  selectedTier = opt.dataset.tier;
+// Tier selection — click anywhere on a tile (including the price text)
+document.querySelectorAll('.tier-opt').forEach(opt => {
+  opt.addEventListener('click', () => selectTier(opt.dataset.tier));
 });
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
@@ -664,7 +683,7 @@ function showToast(msg) {
 }
 
 // ── Upgrade button in pricing ────────────────────────────────
-document.getElementById('upgrade').addEventListener('click', showUpgrade);
+document.getElementById('upgrade').addEventListener('click', () => showUpgrade('pro'));
 
 // ── Demo optimizer (only used when no backend is set) ───────
 function demoOptimize(text, mode) {
