@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PromptSmith — Better prompts for AI coding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #0c0d10;
+  --surface: #14161b;
+  --surface-2: #1b1e25;
+  --line: #262a33;
+  --line-bright: #333845;
+  --text: #e6e8ec;
+  --text-dim: #9097a3;
+  --text-faint: #5c6373;
+  --acc: #7cf6a8;        /* signature: terminal green */
+  --acc-dim: #4ba374;
+  --acc-glow: rgba(124,246,168,0.14);
+  --amber: #f6c87c;
+  --red: #f67c8c;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Space Grotesk', system-ui, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(700px circle at 80% -5%, var(--acc-glow), transparent 55%),
+    radial-gradient(600px circle at 5% 100%, rgba(246,200,124,0.05), transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+.wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+/* ── NAV ── */
+nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0; border-bottom: 1px solid var(--line);
+}
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
+.logo .mark {
+  font-family: var(--mono); color: var(--acc);
+  border: 1px solid var(--acc-dim); border-radius: 6px;
+  padding: 2px 7px; font-size: 14px; font-weight: 600;
+  box-shadow: 0 0 16px var(--acc-glow);
+}
+.nav-right { display: flex; align-items: center; gap: 20px; font-size: 14px; }
+.nav-right a { color: var(--text-dim); text-decoration: none; transition: color .15s; }
+.nav-right a:hover { color: var(--text); }
+.badge-pro {
+  font-family: var(--mono); font-size: 11px; color: var(--amber);
+  border: 1px solid rgba(246,200,124,0.3); border-radius: 20px;
+  padding: 3px 10px;
+}
+
+/* ── HERO ── */
+.hero { padding: 64px 0 40px; }
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; color: var(--acc);
+  letter-spacing: 0.04em; margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+}
+.eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--acc-dim); }
+.hero h1 {
+  font-size: clamp(34px, 5.5vw, 56px); font-weight: 700;
+  letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 20px;
+}
+.hero h1 .hl { color: var(--acc); }
+.hero p.sub {
+  font-size: 18px; color: var(--text-dim); max-width: 560px; line-height: 1.6;
+}
+.hero .sub code {
+  font-family: var(--mono); font-size: 15px; color: var(--text);
+  background: var(--surface-2); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line);
+}
+
+/* ── APP ── */
+.app { margin-top: 40px; }
+.modebar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.mode {
+  font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
+  background: var(--surface); border: 1px solid var(--line);
+  padding: 7px 14px; border-radius: 7px; cursor: pointer;
+  transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.mode:hover { border-color: var(--line-bright); color: var(--text); }
+.mode.active {
+  color: var(--acc); border-color: var(--acc-dim);
+  background: linear-gradient(180deg, var(--acc-glow), transparent);
+}
+.mode .ic { font-size: 13px; }
+
+.panes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .panes { grid-template-columns: 1fr; } }
+
+.pane {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  min-height: 340px;
+}
+.pane-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.pane-title { font-family: var(--mono); font-size: 12.5px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.in { background: var(--text-faint); }
+.dot.out { background: var(--acc); box-shadow: 0 0 10px var(--acc-glow); }
+textarea {
+  flex: 1; width: 100%; resize: none; border: none; outline: none;
+  background: transparent; color: var(--text);
+  font-family: var(--mono); font-size: 14px; line-height: 1.65;
+  padding: 16px; min-height: 220px;
+}
+textarea::placeholder { color: var(--text-faint); }
+.out-body {
+  flex: 1; padding: 16px; font-family: var(--mono); font-size: 14px;
+  line-height: 1.65; color: var(--text); white-space: pre-wrap; overflow-y: auto;
+  min-height: 220px;
+}
+.out-empty { color: var(--text-faint); }
+.out-body::-webkit-scrollbar { width: 8px; }
+.out-body::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 4px; }
+
+.pane-foot { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.charcount { font-family: var(--mono); font-size: 11px; color: var(--text-faint); }
+
+.btn {
+  font-family: var(--sans); font-weight: 600; font-size: 14px;
+  border: none; border-radius: 8px; cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+}
+.btn-primary { background: var(--acc); color: #06160d; }
+.btn-primary:hover { box-shadow: 0 0 24px var(--acc-glow); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-ghost { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--line); }
+.btn-ghost:hover { color: var(--text); border-color: var(--line-bright); }
+.btn .spin {
+  width: 14px; height: 14px; border: 2px solid rgba(6,22,13,0.3);
+  border-top-color: #06160d; border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.err { color: var(--red); font-family: var(--mono); font-size: 12.5px; margin-top: 10px; }
+
+/* ── TEMPLATES ── */
+.section { padding: 64px 0 24px; }
+.section h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+.section .lede { color: var(--text-dim); font-size: 15px; margin-bottom: 28px; }
+.tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 760px) { .tpl-grid { grid-template-columns: 1fr; } }
+.tpl {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 18px; cursor: pointer; transition: all .15s;
+}
+.tpl:hover { border-color: var(--acc-dim); transform: translateY(-2px); }
+.tpl .tpl-ic { font-size: 18px; margin-bottom: 10px; }
+.tpl h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+.tpl p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.tpl .use { font-family: var(--mono); font-size: 11px; color: var(--acc); margin-top: 12px; opacity: 0; transition: opacity .15s; }
+.tpl:hover .use { opacity: 1; }
+
+/* ── PRICING ── */
+.pricing { padding: 64px 0; }
+.price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 720px; }
+@media (max-width: 640px) { .price-grid { grid-template-columns: 1fr; } }
+.price {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 28px;
+}
+.price.pro { border-color: var(--acc-dim); position: relative; }
+.price.pro::after {
+  content: 'RECOMMENDED'; position: absolute; top: 16px; right: 16px;
+  font-family: var(--mono); font-size: 10px; color: var(--acc);
+  border: 1px solid var(--acc-dim); border-radius: 20px; padding: 3px 9px;
+}
+.price .plan { font-family: var(--mono); font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+.price .amt { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+.price .amt span { font-size: 15px; color: var(--text-dim); font-weight: 400; }
+.price ul { list-style: none; margin: 20px 0 24px; }
+.price li { font-size: 14px; color: var(--text-dim); padding: 7px 0; display: flex; align-items: center; gap: 10px; }
+.price li .ck { color: var(--acc); font-family: var(--mono); }
+.price .btn { width: 100%; justify-content: center; }
+
+/* ── FOOTER ── */
+footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32px; }
+.foot-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.foot-row .muted { color: var(--text-faint); font-size: 13px; font-family: var(--mono); }
+.foot-row a { color: var(--text-dim); text-decoration: none; font-size: 13px; }
+.foot-row a:hover { color: var(--text); }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface-2); border: 1px solid var(--acc-dim); color: var(--text);
+  padding: 12px 20px; border-radius: 10px; font-family: var(--mono); font-size: 13px;
+  opacity: 0; transition: all .25s; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo"><span class="mark">&gt;_</span> PromptSmith</div>
+    <div class="nav-right">
+      <a href="#templates">Templates</a>
+      <a href="#pricing">Pricing</a>
+      <span class="badge-pro">Pro · ₹499/mo</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="eyebrow">PROMPT ENGINEERING FOR DEVELOPERS</div>
+    <h1>Stop fighting your<br/><span class="hl">AI coding assistant.</span></h1>
+    <p class="sub">Paste a rough request. Get a precision-engineered prompt that makes Claude, ChatGPT, Cursor, and Copilot return code that actually works — the first time. Built by developers who got tired of re-prompting.</p>
+  </header>
+
+  <!-- APP -->
+  <section class="app">
+    <div class="modebar" id="modebar">
+      <button class="mode active" data-mode="general"><span class="ic">⌘</span> General</button>
+      <button class="mode" data-mode="debug"><span class="ic">🐛</span> Debug</button>
+      <button class="mode" data-mode="refactor"><span class="ic">♻</span> Refactor</button>
+      <button class="mode" data-mode="review"><span class="ic">🔍</span> Review</button>
+      <button class="mode" data-mode="tests"><span class="ic">✓</span> Tests</button>
+      <button class="mode" data-mode="explain"><span class="ic">💡</span> Explain</button>
+    </div>
+
+    <div class="panes">
+      <!-- INPUT -->
+      <div class="pane">
+        <div class="pane-head">
+          <div class="pane-title"><span class="dot in"></span> YOUR ROUGH REQUEST</div>
+        </div>
+        <textarea id="input" placeholder="e.g. fix my react useEffect its running infinite loop&#10;&#10;or: write a function to debounce api calls&#10;&#10;or: refactor this messy nested if statements"></textarea>
+        <div class="pane-foot">
+          <span class="charcount"><span id="cc">0</span> / 4000</span>
+          <button class="btn btn-primary" id="go"><span id="golabel">Optimize prompt</span></button>
+        </div>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="pane">
+        <div class="pane-head">
+          <div class="pane-title"><span class="dot out"></span> ENGINEERED PROMPT</div>
+          <button class="btn btn-ghost" id="copy" style="padding:6px 12px;font-size:12.5px;" disabled>Copy</button>
+        </div>
+        <div class="out-body" id="output"><span class="out-empty">Your optimized prompt appears here. Copy it straight into your AI tool.</span></div>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section class="section" id="templates">
+    <h2>Battle-tested templates</h2>
+    <p class="lede">Click any template to load it, then fill in your specifics and optimize.</p>
+    <div class="tpl-grid" id="tplgrid"></div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing">
+    <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.02em;margin-bottom:6px;">Pricing</h2>
+    <p class="lede" style="color:var(--text-dim);font-size:15px;margin-bottom:28px;">Start free. Upgrade when PromptSmith saves you more time than it costs.</p>
+    <div class="price-grid">
+      <div class="price">
+        <div class="plan">FREE</div>
+        <div class="amt">₹0<span> / forever</span></div>
+        <ul>
+          <li><span class="ck">+</span> 10 optimizations per day</li>
+          <li><span class="ck">+</span> All 6 modes</li>
+          <li><span class="ck">+</span> Core templates</li>
+          <li><span class="ck">+</span> Copy to any AI tool</li>
+        </ul>
+        <button class="btn btn-ghost" onclick="document.getElementById('input').focus()">Start free</button>
+      </div>
+      <div class="price pro">
+        <div class="plan">PRO</div>
+        <div class="amt">₹499<span> / month</span></div>
+        <ul>
+          <li><span class="ck">+</span> Unlimited optimizations</li>
+          <li><span class="ck">+</span> Save & organize your prompt library</li>
+          <li><span class="ck">+</span> Full template collection</li>
+          <li><span class="ck">+</span> Priority optimization speed</li>
+        </ul>
+        <button class="btn btn-primary" id="upgrade" style="justify-content:center;">Upgrade to Pro</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="foot-row">
+      <span class="muted">PromptSmith · built for developers</span>
+      <div style="display:flex;gap:20px;">
+        <a href="#templates">Templates</a>
+        <a href="#pricing">Pricing</a>
+        <a href="mailto:hello@promptsmith.dev">Contact</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+// After deploying the backend, set this to your API URL.
+// For local testing it falls back to a built-in demo optimizer.
+const API_URL = "https://promptsmith-api-production.up.railway.app"; // e.g. "https://promptsmith-api.up.railway.app"
+
+let currentMode = 'general';
+
+const $ = s => document.querySelector(s);
+const input = $('#input'), output = $('#output'), go = $('#go'),
+      golabel = $('#golabel'), copyBtn = $('#copy'), err = $('#err'),
+      cc = $('#cc'), toast = $('#toast');
+
+// ── Mode switching ──────────────────────────────────────────
+document.getElementById('modebar').addEventListener('click', e => {
+  const btn = e.target.closest('.mode');
+  if (!btn) return;
+  document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+});
+
+// ── Char count ──────────────────────────────────────────────
+input.addEventListener('input', () => {
+  cc.textContent = input.value.length;
+  if (input.value.length > 4000) input.value = input.value.slice(0, 4000);
+});
+
+// ── Templates ───────────────────────────────────────────────
+const templates = [
+  { ic:'🐛', mode:'debug', title:'Debug an error', desc:'Find the root cause of a bug and get a working fix.', text:'I am getting this error and I do not understand why. Find the root cause, explain it, and give me the corrected code.\n\nError: [paste error]\n\nRelevant code: [paste code]' },
+  { ic:'♻', mode:'refactor', title:'Refactor messy code', desc:'Clean up code without breaking behavior.', text:'Refactor this code to be cleaner and more maintainable without changing what it does. Explain each change briefly.\n\n[paste code]' },
+  { ic:'✓', mode:'tests', title:'Write unit tests', desc:'Cover happy paths, edge cases, and errors.', text:'Write thorough unit tests for this code covering happy paths, edge cases, and error conditions.\n\n[paste code]\n\nTest framework: [e.g. Jest / pytest]' },
+  { ic:'🔍', mode:'review', title:'Review a pull request', desc:'Get a senior-level code review with severity.', text:'Review this code like a senior engineer. Find bugs, security issues, and performance problems, ordered by severity, with line-level suggestions.\n\n[paste code or diff]' },
+  { ic:'💡', mode:'explain', title:'Explain a codebase', desc:'Understand unfamiliar code fast.', text:'Explain this code. Start with what it does at a high level, then walk through the key parts, and flag anything that looks like a bug or smell.\n\n[paste code]' },
+  { ic:'⚡', mode:'general', title:'Build a feature', desc:'Get clean, complete implementation.', text:'Implement the following feature. Include types, error handling, and brief comments. Ask me clarifying questions first if anything is ambiguous.\n\nFeature: [describe what you want]\n\nStack: [e.g. React + TypeScript + Node]' },
+];
+
+const tplgrid = document.getElementById('tplgrid');
+templates.forEach(t => {
+  const el = document.createElement('div');
+  el.className = 'tpl';
+  el.innerHTML = `<div class="tpl-ic">${t.ic}</div><h3>${t.title}</h3><p>${t.desc}</p><div class="use">Load template →</div>`;
+  el.onclick = () => {
+    input.value = t.text;
+    cc.textContent = input.value.length;
+    currentMode = t.mode;
+    document.querySelectorAll('.mode').forEach(m => m.classList.toggle('active', m.dataset.mode === t.mode));
+    document.querySelector('.app').scrollIntoView({ behavior:'smooth', block:'center' });
+    input.focus();
+  };
+  tplgrid.appendChild(el);
+});
+
+// ── Optimize ────────────────────────────────────────────────
+go.addEventListener('click', optimize);
+input.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') optimize();
+});
+
+async function optimize() {
+  const text = input.value.trim();
+  err.textContent = '';
+  if (text.length < 3) { err.textContent = 'Enter what you want the AI to do.'; return; }
+
+  go.disabled = true;
+  golabel.innerHTML = '<span class="spin"></span> Optimizing';
+
+  try {
+    let optimized;
+    if (API_URL) {
+      const r = await fetch(API_URL + '/api/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: text, mode: currentMode }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Request failed');
+      optimized = data.optimized;
+    } else {
+      // Demo fallback (works with no backend) so the page is never dead
+      await new Promise(res => setTimeout(res, 600));
+      optimized = demoOptimize(text, currentMode);
+    }
+    output.textContent = optimized;
+    copyBtn.disabled = false;
+  } catch (e) {
+    err.textContent = e.message || 'Something went wrong. Try again.';
+  } finally {
+    go.disabled = false;
+    golabel.textContent = 'Optimize prompt';
+  }
+}
+
+// ── Copy ────────────────────────────────────────────────────
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(output.textContent).then(() => showToast('Copied — paste it into your AI tool'));
+});
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ── Upgrade (placeholder until payments wired) ──────────────
+document.getElementById('upgrade').addEventListener('click', () => {
+  showToast('Payments coming soon — Pro will be ₹499/mo');
+});
+
+// ── Demo optimizer (only used when no backend is set) ───────
+function demoOptimize(text, mode) {
+  const frames = {
+    debug: `Find the root cause of the following bug — not just the symptom. Explain why it happens, give me the corrected code, and tell me how to prevent similar issues.\n\nWhat I'm seeing:\n${text}\n\n[Paste the exact error message here]\n[Paste the relevant code here]\n\nThink step by step before writing the fix.`,
+    refactor: `Refactor the following code to improve readability, structure, and performance while preserving its exact behavior. Explain each change in one line. Do not add new dependencies unless clearly justified.\n\nGoal:\n${text}\n\n[Paste the code to refactor here]`,
+    review: `Act as a senior engineer reviewing this code. Identify bugs, security issues, performance problems, and maintainability concerns — ordered by severity — with specific, line-level suggestions.\n\nContext:\n${text}\n\n[Paste the code or diff to review here]`,
+    tests: `Write thorough unit tests for the following. Cover the happy path, edge cases, and error conditions. Use clear, descriptive test names.\n\nWhat to test:\n${text}\n\n[Paste the code here]\n[Test framework, if known]`,
+    explain: `Explain the following code. First describe what it does at a high level, then walk through the key parts step by step, define any non-obvious concepts, and flag anything that looks like a bug or code smell.\n\n${text}\n\n[Paste the code here]`,
+    general: `${text.charAt(0).toUpperCase() + text.slice(1)}.\n\nRequirements:\n- Write clean, production-quality code with types and error handling.\n- Briefly comment non-obvious logic.\n- If anything is ambiguous, ask me clarifying questions before writing code.\n\nContext / stack: [describe your language, framework, and constraints]\nExpected output: [code only / code + explanation]`,
+  };
+  return frames[mode] || frames.general;
+}
+</script>
+</body>
+</html>
