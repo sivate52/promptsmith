@@ -4,6 +4,16 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>PromptSmith — Better prompts for AI coding</title>
+<meta name="description" content="Turn rough developer requests into precision-engineered prompts for Claude, ChatGPT, Cursor, and Copilot. Free prompt optimizer built for developers." />
+<meta name="keywords" content="prompt engineering, AI coding, Claude, ChatGPT, Cursor, Copilot, developer tools, prompt optimizer" />
+<meta property="og:title" content="PromptSmith — Better prompts for AI coding" />
+<meta property="og:description" content="Turn rough developer requests into precision-engineered prompts for Claude, ChatGPT, Cursor, and Copilot. Free." />
+<meta property="og:url" content="https://usepromptsmith.com" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="PromptSmith — Better prompts for AI coding" />
+<meta name="twitter:description" content="Turn rough developer requests into precision-engineered prompts for Claude, ChatGPT, Cursor, and Copilot. Free." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='64' height='64' rx='14' fill='%230C0D10'/%3E%3Crect x='6' y='6' width='52' height='52' rx='10' fill='%2314161B' stroke='%23262A33' stroke-width='1'/%3E%3Ctext x='32' y='44' font-family='monospace' font-size='22' font-weight='700' fill='%237CF6A8' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -51,12 +61,7 @@ nav {
   padding: 20px 0; border-bottom: 1px solid var(--line);
 }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
-.logo .mark {
-  font-family: var(--mono); color: var(--acc);
-  border: 1px solid var(--acc-dim); border-radius: 6px;
-  padding: 2px 7px; font-size: 14px; font-weight: 600;
-  box-shadow: 0 0 16px var(--acc-glow);
-}
+.logo svg { display: block; flex-shrink: 0; }
 .nav-right { display: flex; align-items: center; gap: 20px; font-size: 14px; }
 .nav-right a { color: var(--text-dim); text-decoration: none; transition: color .15s; }
 .nav-right a:hover { color: var(--text); }
@@ -316,7 +321,13 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
 
   <!-- NAV -->
   <nav>
-    <div class="logo"><span class="mark">&gt;_</span> PromptSmith</div>
+    <div class="logo">
+      <svg width="32" height="32" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="#14161B" stroke="#262A33" stroke-width="1.5"/>
+        <text x="32" y="44" font-family="'JetBrains Mono',Consolas,monospace" font-size="22" font-weight="700" fill="#7CF6A8" text-anchor="middle">&gt;_</text>
+      </svg>
+      PromptSmith
+    </div>
     <div class="nav-right">
       <a href="#templates">Templates</a>
       <a href="#pricing">Pricing</a>
@@ -438,7 +449,7 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
       <div style="display:flex;gap:20px;">
         <a href="#templates">Templates</a>
         <a href="#pricing">Pricing</a>
-        <a href="mailto:hello@promptsmith.dev">Contact</a>
+        <a href="mailto:hello@usepromptsmith.in">Contact</a>
       </div>
     </div>
   </footer>
@@ -476,7 +487,7 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
 // ── CONFIG ──────────────────────────────────────────────────
 // After deploying the backend, set this to your API URL.
 // For local testing it falls back to a built-in demo optimizer.
-const API_URL = "https://promptsmith-api-production.up.railway.app"; // e.g. "https://promptsmith-api.up.railway.app"
+const API_URL = "https://promptsmith-api-production.up.railway.app";
 
 let currentMode = 'general';
 
