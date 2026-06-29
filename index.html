@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PromptSmith — Better prompts for AI coding</title>
+<title>PromptSmith — Better prompts, better AI results</title>
 <meta name="description" content="Turn rough developer requests into precision-engineered prompts for Claude, ChatGPT, Cursor, and Copilot. Free prompt optimizer built for developers." />
 <meta name="keywords" content="prompt engineering, AI coding, Claude, ChatGPT, Cursor, Copilot, developer tools, prompt optimizer" />
 <meta property="og:title" content="PromptSmith — Better prompts for AI coding" />
@@ -94,6 +94,24 @@ nav {
 /* ── APP ── */
 .app { margin-top: 40px; }
 .modebar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+/* ── Audience switcher ── */
+.audience-switch {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; margin-bottom: 20px;
+}
+.aud-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+  background: transparent; border: none; padding: 8px 18px;
+  border-radius: 7px; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 7px;
+}
+.aud-btn:hover { color: var(--text); }
+.aud-btn.active {
+  color: #06160d; background: var(--acc); font-weight: 600;
+}
+.aud-btn .ic { font-size: 14px; }
 .mode {
   font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
   background: var(--surface); border: 1px solid var(--line);
@@ -336,13 +354,20 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
 
   <!-- HERO -->
   <header class="hero">
-    <div class="eyebrow">PROMPT ENGINEERING FOR DEVELOPERS</div>
-    <h1>Stop fighting your<br/><span class="hl">AI coding assistant.</span></h1>
-    <p class="sub">Paste a rough request. Get a precision-engineered prompt that makes Claude, ChatGPT, Cursor, and Copilot return code that actually works — the first time. Built by developers who got tired of re-prompting.</p>
+    <div class="eyebrow" id="eyebrow">PROMPT ENGINEERING FOR EVERYONE</div>
+    <h1 id="heroTitle">Get <span class="hl">better results</span><br/>from AI — every time.</h1>
+    <p class="sub" id="heroSub">Paste a rough request. Get a precision-engineered prompt that makes ChatGPT, Claude, and Gemini give you exactly what you wanted — the first time. No prompt-engineering skills required.</p>
   </header>
 
   <!-- APP -->
   <section class="app">
+
+  <!-- Audience switcher -->
+  <div class="audience-switch" id="audienceSwitch">
+    <button class="aud-btn active" data-audience="marketing"><span class="ic">✍️</span> Marketing &amp; Writing</button>
+    <button class="aud-btn" data-audience="developer"><span class="ic">⌨️</span> Developer</button>
+  </div>
+
   <!-- Usage counter -->
   <div class="usage-bar" id="usagebar">
     <div class="usage-left">
@@ -358,7 +383,20 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
     Come back tomorrow, or upgrade to Pro for unlimited access.<br/>
     <button class="up-btn" onclick="showUpgrade()">Upgrade to Pro — ₹499/month</button>
   </div>
-    <div class="modebar" id="modebar">
+
+    <!-- Marketing modes -->
+    <div class="modebar" id="modebar-marketing">
+      <button class="mode active" data-mode="email"><span class="ic">✉️</span> Email</button>
+      <button class="mode" data-mode="social"><span class="ic">📱</span> Social Post</button>
+      <button class="mode" data-mode="blog"><span class="ic">📝</span> Blog</button>
+      <button class="mode" data-mode="adcopy"><span class="ic">🎯</span> Ad Copy</button>
+      <button class="mode" data-mode="outreach"><span class="ic">🤝</span> Outreach</button>
+      <button class="mode" data-mode="rewrite"><span class="ic">♻</span> Rewrite</button>
+      <button class="mode" data-mode="summarize"><span class="ic">📋</span> Summarize</button>
+    </div>
+
+    <!-- Developer modes (hidden by default) -->
+    <div class="modebar" id="modebar-developer" style="display:none;">
       <button class="mode active" data-mode="general"><span class="ic">⌘</span> General</button>
       <button class="mode" data-mode="debug"><span class="ic">🐛</span> Debug</button>
       <button class="mode" data-mode="refactor"><span class="ic">♻</span> Refactor</button>
@@ -373,7 +411,7 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
         <div class="pane-head">
           <div class="pane-title"><span class="dot in"></span> YOUR ROUGH REQUEST</div>
         </div>
-        <textarea id="input" placeholder="e.g. fix my react useEffect its running infinite loop&#10;&#10;or: write a function to debounce api calls&#10;&#10;or: refactor this messy nested if statements"></textarea>
+        <textarea id="input" placeholder="e.g. write a marketing email for our new product launch&#10;&#10;or: linkedin post announcing we hit 1000 customers&#10;&#10;or: rewrite this to sound more professional"></textarea>
         <div class="pane-foot">
           <span class="charcount"><span id="cc">0</span> / 4000</span>
           <button class="btn btn-primary" id="go"><span id="golabel">Optimize prompt</span></button>
@@ -489,20 +527,71 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
 // For local testing it falls back to a built-in demo optimizer.
 const API_URL = "https://promptsmith-api-production.up.railway.app";
 
-let currentMode = 'general';
+let currentAudience = 'marketing';
+let currentMode = 'email';
 
 const $ = s => document.querySelector(s);
 const input = $('#input'), output = $('#output'), go = $('#go'),
       golabel = $('#golabel'), copyBtn = $('#copy'), err = $('#err'),
       cc = $('#cc'), toast = $('#toast');
 
-// ── Mode switching ──────────────────────────────────────────
-document.getElementById('modebar').addEventListener('click', e => {
-  const btn = e.target.closest('.mode');
+// ── Hero copy per audience ──────────────────────────────────
+const heroCopy = {
+  marketing: {
+    eyebrow: 'PROMPT ENGINEERING FOR MARKETERS & WRITERS',
+    title: 'Get <span class="hl">better results</span><br/>from AI — every time.',
+    sub: 'Paste a rough request. Get a precision-engineered prompt that makes ChatGPT, Claude, and Gemini give you exactly what you wanted — the first time. No prompt-engineering skills required.',
+    placeholder: 'e.g. write a marketing email for our new product launch\n\nor: linkedin post announcing we hit 1000 customers\n\nor: rewrite this to sound more professional'
+  },
+  developer: {
+    eyebrow: 'PROMPT ENGINEERING FOR DEVELOPERS',
+    title: 'Stop fighting your<br/><span class="hl">AI coding assistant.</span>',
+    sub: 'Paste a rough request. Get a precision-engineered prompt that makes Claude, ChatGPT, Cursor, and Copilot return code that actually works — the first time.',
+    placeholder: 'e.g. fix my react useEffect its running infinite loop\n\nor: write a function to debounce api calls\n\nor: refactor this messy nested if statements'
+  }
+};
+
+const defaultMode = { marketing: 'email', developer: 'general' };
+
+// ── Audience switching ──────────────────────────────────────
+document.getElementById('audienceSwitch').addEventListener('click', e => {
+  const btn = e.target.closest('.aud-btn');
   if (!btn) return;
-  document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
-  btn.classList.add('active');
-  currentMode = btn.dataset.mode;
+  const aud = btn.dataset.audience;
+  if (aud === currentAudience) return;
+  currentAudience = aud;
+
+  // Toggle active button
+  document.querySelectorAll('.aud-btn').forEach(b => b.classList.toggle('active', b.dataset.audience === aud));
+
+  // Show the right mode bar
+  document.getElementById('modebar-marketing').style.display = aud === 'marketing' ? 'flex' : 'none';
+  document.getElementById('modebar-developer').style.display = aud === 'developer' ? 'flex' : 'none';
+
+  // Reset to that audience's default mode
+  currentMode = defaultMode[aud];
+  document.querySelectorAll('#modebar-' + aud + ' .mode').forEach(m => m.classList.toggle('active', m.dataset.mode === currentMode));
+
+  // Update hero copy
+  const c = heroCopy[aud];
+  document.getElementById('eyebrow').textContent = c.eyebrow;
+  document.getElementById('heroTitle').innerHTML = c.title;
+  document.getElementById('heroSub').textContent = c.sub;
+  input.placeholder = c.placeholder;
+
+  // Swap templates
+  renderTemplates(aud);
+});
+
+// ── Mode switching (both bars) ──────────────────────────────
+document.querySelectorAll('.modebar').forEach(bar => {
+  bar.addEventListener('click', e => {
+    const btn = e.target.closest('.mode');
+    if (!btn) return;
+    bar.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+  });
 });
 
 // ── Char count ──────────────────────────────────────────────
@@ -511,31 +600,45 @@ input.addEventListener('input', () => {
   if (input.value.length > 4000) input.value = input.value.slice(0, 4000);
 });
 
-// ── Templates ───────────────────────────────────────────────
-const templates = [
-  { ic:'🐛', mode:'debug', title:'Debug an error', desc:'Find the root cause of a bug and get a working fix.', text:'I am getting this error and I do not understand why. Find the root cause, explain it, and give me the corrected code.\n\nError: [paste error]\n\nRelevant code: [paste code]' },
-  { ic:'♻', mode:'refactor', title:'Refactor messy code', desc:'Clean up code without breaking behavior.', text:'Refactor this code to be cleaner and more maintainable without changing what it does. Explain each change briefly.\n\n[paste code]' },
-  { ic:'✓', mode:'tests', title:'Write unit tests', desc:'Cover happy paths, edge cases, and errors.', text:'Write thorough unit tests for this code covering happy paths, edge cases, and error conditions.\n\n[paste code]\n\nTest framework: [e.g. Jest / pytest]' },
-  { ic:'🔍', mode:'review', title:'Review a pull request', desc:'Get a senior-level code review with severity.', text:'Review this code like a senior engineer. Find bugs, security issues, and performance problems, ordered by severity, with line-level suggestions.\n\n[paste code or diff]' },
-  { ic:'💡', mode:'explain', title:'Explain a codebase', desc:'Understand unfamiliar code fast.', text:'Explain this code. Start with what it does at a high level, then walk through the key parts, and flag anything that looks like a bug or smell.\n\n[paste code]' },
-  { ic:'⚡', mode:'general', title:'Build a feature', desc:'Get clean, complete implementation.', text:'Implement the following feature. Include types, error handling, and brief comments. Ask me clarifying questions first if anything is ambiguous.\n\nFeature: [describe what you want]\n\nStack: [e.g. React + TypeScript + Node]' },
-];
+// ── Templates (per audience) ────────────────────────────────
+const templateSets = {
+  marketing: [
+    { ic:'✉️', mode:'email', title:'Marketing email', desc:'Write an email that gets opened and clicked.', text:'Write a marketing email for our product. Make it compelling with a strong subject line and clear call to action.\n\nProduct: [what you are promoting]\n\nAudience: [who you are emailing]' },
+    { ic:'📱', mode:'social', title:'Social media post', desc:'Hook attention and drive engagement.', text:'Write a social media post about this. Hook in the first line and keep it scannable.\n\nTopic: [what to post about]\n\nPlatform: [LinkedIn / Instagram / X]' },
+    { ic:'📝', mode:'blog', title:'Blog article', desc:'Structured, readable, SEO-friendly.', text:'Write a blog article on this topic with a clear structure and headings.\n\nTopic: [your topic]\n\nTarget keyword: [SEO keyword]\n\nAudience: [who reads this]' },
+    { ic:'🎯', mode:'adcopy', title:'Ad copy', desc:'Short, punchy, multiple variations.', text:'Write ad copy for this product. Give me a few variations leading with the main benefit.\n\nProduct: [product]\n\nKey benefit: [the one thing that matters]\n\nPlatform: [Google / Meta / etc]' },
+    { ic:'🤝', mode:'outreach', title:'Sales outreach', desc:'Personalized, human, not salesy.', text:'Write a cold outreach message. Keep it short, personalized, and human with a low-friction ask.\n\nRecipient: [role / company]\n\nWhat I offer: [your offer]\n\nThe ask: [what you want them to do]' },
+    { ic:'♻', mode:'rewrite', title:'Rewrite / improve', desc:'Better clarity, flow, and tone.', text:'Rewrite this to improve clarity and flow. Make it sound more professional.\n\n[paste your text]' },
+  ],
+  developer: [
+    { ic:'🐛', mode:'debug', title:'Debug an error', desc:'Find the root cause of a bug and get a working fix.', text:'I am getting this error and I do not understand why. Find the root cause, explain it, and give me the corrected code.\n\nError: [paste error]\n\nRelevant code: [paste code]' },
+    { ic:'♻', mode:'refactor', title:'Refactor messy code', desc:'Clean up code without breaking behavior.', text:'Refactor this code to be cleaner and more maintainable without changing what it does. Explain each change briefly.\n\n[paste code]' },
+    { ic:'✓', mode:'tests', title:'Write unit tests', desc:'Cover happy paths, edge cases, and errors.', text:'Write thorough unit tests for this code covering happy paths, edge cases, and error conditions.\n\n[paste code]\n\nTest framework: [e.g. Jest / pytest]' },
+    { ic:'🔍', mode:'review', title:'Review a pull request', desc:'Get a senior-level code review with severity.', text:'Review this code like a senior engineer. Find bugs, security issues, and performance problems, ordered by severity, with line-level suggestions.\n\n[paste code or diff]' },
+    { ic:'💡', mode:'explain', title:'Explain a codebase', desc:'Understand unfamiliar code fast.', text:'Explain this code. Start with what it does at a high level, then walk through the key parts, and flag anything that looks like a bug or smell.\n\n[paste code]' },
+    { ic:'⚡', mode:'general', title:'Build a feature', desc:'Get clean, complete implementation.', text:'Implement the following feature. Include types, error handling, and brief comments. Ask me clarifying questions first if anything is ambiguous.\n\nFeature: [describe what you want]\n\nStack: [e.g. React + TypeScript + Node]' },
+  ]
+};
 
 const tplgrid = document.getElementById('tplgrid');
-templates.forEach(t => {
-  const el = document.createElement('div');
-  el.className = 'tpl';
-  el.innerHTML = `<div class="tpl-ic">${t.ic}</div><h3>${t.title}</h3><p>${t.desc}</p><div class="use">Load template →</div>`;
-  el.onclick = () => {
-    input.value = t.text;
-    cc.textContent = input.value.length;
-    currentMode = t.mode;
-    document.querySelectorAll('.mode').forEach(m => m.classList.toggle('active', m.dataset.mode === t.mode));
-    document.querySelector('.app').scrollIntoView({ behavior:'smooth', block:'center' });
-    input.focus();
-  };
-  tplgrid.appendChild(el);
-});
+function renderTemplates(aud) {
+  tplgrid.innerHTML = '';
+  templateSets[aud].forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'tpl';
+    el.innerHTML = `<div class="tpl-ic">${t.ic}</div><h3>${t.title}</h3><p>${t.desc}</p><div class="use">Load template →</div>`;
+    el.onclick = () => {
+      input.value = t.text;
+      cc.textContent = input.value.length;
+      currentMode = t.mode;
+      document.querySelectorAll('#modebar-' + aud + ' .mode').forEach(m => m.classList.toggle('active', m.dataset.mode === t.mode));
+      document.querySelector('.app').scrollIntoView({ behavior:'smooth', block:'center' });
+      input.focus();
+    };
+    tplgrid.appendChild(el);
+  });
+}
+renderTemplates('marketing');
 
 // ── Optimize ────────────────────────────────────────────────
 go.addEventListener('click', optimize);
