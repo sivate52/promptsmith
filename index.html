@@ -182,6 +182,34 @@ textarea::placeholder { color: var(--text-faint); }
 /* ── TEMPLATES ── */
 .section { padding: 64px 0 24px; }
 .section h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+
+/* ── How it works ── */
+.how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px; }
+@media (max-width: 760px) { .how-steps { grid-template-columns: 1fr; } }
+.how-step {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 22px; position: relative;
+}
+.how-step .num {
+  font-family: var(--mono); font-size: 13px; color: var(--acc);
+  border: 1px solid var(--acc-dim); border-radius: 6px;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px; font-weight: 600;
+}
+.how-step h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.how-step p { font-size: 13.5px; color: var(--text-dim); line-height: 1.55; }
+.how-modes { margin-top: 8px; }
+.how-modes h3 { font-size: 16px; font-weight: 600; margin: 28px 0 14px; color: var(--text); }
+.mode-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (max-width: 640px) { .mode-list { grid-template-columns: 1fr; } }
+.mode-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px 16px;
+}
+.mode-item .mi-ic { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+.mode-item .mi-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.mode-item .mi-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 .section .lede { color: var(--text-dim); font-size: 15px; margin-bottom: 28px; }
 .tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media (max-width: 760px) { .tpl-grid { grid-template-columns: 1fr; } }
@@ -347,6 +375,7 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
       PromptSmith
     </div>
     <div class="nav-right">
+      <a href="#how">How it works</a>
       <a href="#templates">Templates</a>
       <a href="#pricing">Pricing</a>
     </div>
@@ -428,6 +457,34 @@ footer { border-top: 1px solid var(--line); padding: 32px 0 48px; margin-top: 32
       </div>
     </div>
     <div class="err" id="err"></div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how">
+    <h2>How it works</h2>
+    <p class="lede">Turn a rough request into a prompt that actually gets you what you wanted — in three steps.</p>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="num">1</div>
+        <h3>Pick your mode</h3>
+        <p>Choose your lane (Marketing or Developer) and the mode that matches your task — like Email, Blog, or Debug.</p>
+      </div>
+      <div class="how-step">
+        <div class="num">2</div>
+        <h3>Type roughly</h3>
+        <p>Write your request however it comes out — messy and vague is fine. That's the whole point.</p>
+      </div>
+      <div class="how-step">
+        <div class="num">3</div>
+        <h3>Copy &amp; use</h3>
+        <p>Get a precise, structured prompt. Copy it into ChatGPT, Claude, Gemini, Cursor — and get a far better result.</p>
+      </div>
+    </div>
+
+    <div class="how-modes" id="howModes">
+      <h3 id="howModesTitle">Marketing &amp; Writing modes</h3>
+      <div class="mode-list" id="modeList"></div>
+    </div>
   </section>
 
   <!-- TEMPLATES -->
@@ -581,6 +638,8 @@ document.getElementById('audienceSwitch').addEventListener('click', e => {
 
   // Swap templates
   renderTemplates(aud);
+  // Swap mode descriptions in How it works
+  renderModeDescriptions(aud);
 });
 
 // ── Mode switching (both bars) ──────────────────────────────
@@ -639,6 +698,48 @@ function renderTemplates(aud) {
   });
 }
 renderTemplates('marketing');
+
+// ── Mode descriptions for "How it works" ───────────────────
+const modeDescriptions = {
+  marketing: {
+    title: 'Marketing &amp; Writing modes',
+    items: [
+      { ic:'✉️', name:'Email', desc:'Marketing or business emails with a subject line, clear message, and call to action.' },
+      { ic:'📱', name:'Social Post', desc:'Platform-ready posts (LinkedIn, Instagram, X) with a strong hook and engagement prompt.' },
+      { ic:'📝', name:'Blog', desc:'Structured, publishable articles with headings, intro, and an optional SEO keyword.' },
+      { ic:'🎯', name:'Ad Copy', desc:'Multiple short ad variations that lead with the benefit and fit the platform.' },
+      { ic:'🤝', name:'Outreach', desc:'Personalized cold messages that stay human and end with a low-friction ask.' },
+      { ic:'♻', name:'Rewrite', desc:'Improve the clarity, flow, and tone of text you already have.' },
+      { ic:'📋', name:'Summarize', desc:'Condense long text into your chosen format — bullets, paragraph, or exec summary.' },
+    ]
+  },
+  developer: {
+    title: 'Developer modes',
+    items: [
+      { ic:'⌘', name:'General', desc:'Any coding task — build a feature or write a function, clean and complete with types.' },
+      { ic:'🐛', name:'Debug', desc:'Find the root cause of a bug (not just the symptom), with the fix and prevention notes.' },
+      { ic:'♻', name:'Refactor', desc:'Clean up messy code without changing what it does, with each change explained.' },
+      { ic:'🔍', name:'Review', desc:'Senior-level code review — bugs, security, performance — ordered by severity.' },
+      { ic:'✓', name:'Tests', desc:'Thorough unit tests covering happy paths, edge cases, and error conditions.' },
+      { ic:'💡', name:'Explain', desc:'Understand unfamiliar code fast — high-level first, then a walkthrough of key parts.' },
+    ]
+  }
+};
+
+const modeList = document.getElementById('modeList');
+const howModesTitle = document.getElementById('howModesTitle');
+function renderModeDescriptions(aud) {
+  const data = modeDescriptions[aud];
+  howModesTitle.innerHTML = data.title;
+  modeList.innerHTML = '';
+  data.items.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'mode-item';
+    el.innerHTML = `<span class="mi-ic">${m.ic}</span><div><div class="mi-name">${m.name}</div><div class="mi-desc">${m.desc}</div></div>`;
+    modeList.appendChild(el);
+  });
+}
+renderModeDescriptions('marketing');
 
 // ── Optimize ────────────────────────────────────────────────
 go.addEventListener('click', optimize);
